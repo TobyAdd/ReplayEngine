@@ -7,7 +7,7 @@ https://github.com/TobyAdd/ReplayEngine/releases
 # How to install
 You need to inject a DLL into Geometry Dash. You can use [Cheat Engine](https://www.cheatengine.org/index.php) or [another injector](https://www.google.com/search?q=dll+injector). Do not inject it with Mega Hack as it may not work properly. You can use [GDDLLLoader](https://github.com/adafcaefc/GDDllLoader) to inject it
 # Screenshot (design is not finished yet)
-![ReplayEngine](https://user-images.githubusercontent.com/66429886/233723068-33093b13-6fdf-46ce-812d-a96d5de2bda4.png)
+![sc](https://user-images.githubusercontent.com/66429886/233846048-7295ea54-f768-48b5-879a-51904c066a1a.png)
 # Features
 - Accurate replay recording 
 - Intergrated FPS Bypass and Speedhack
