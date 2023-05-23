@@ -1,6 +1,7 @@
 #include "framerate.h"
 #include "hooks.h"
 #include "replayEngine.h"
+#include "recorder.hpp"
 
 namespace framerate
 {
@@ -12,7 +13,7 @@ namespace framerate
     {
         auto pl = gd::GameManager::sharedState()->getPlayLayer();
         auto el = gd::GameManager::sharedState()->getEditorLayer();
-        if (pl || el)
+        if (pl || el || recorder.m_recording)
         {
             if (pl && frameAdvance.enabled && frameAdvance.triggered)
             {
@@ -29,13 +30,19 @@ namespace framerate
                 if (!replay.real_time)
                     return CCScheduler_update(self, newdt);
 
-                g_disable_render = true;
-                const int times = min(static_cast<int>((dt + g_left_over) / newdt), 100);
-                for (int i = 0; i < times; ++i)
-                {
-                    if (i == times - 1)
-                        g_disable_render = false;
+                g_disable_render = false;
+
+                unsigned times = static_cast<int>((dt + g_left_over) / newdt);
+                if (dt == 0.f)
+                    return CCScheduler_update(self, newdt);
+                auto start = std::chrono::high_resolution_clock::now();
+                for (unsigned i = 0; i < times; ++i) {
                     CCScheduler_update(self, newdt);
+                    using namespace std::literals;
+                    if (std::chrono::high_resolution_clock::now() - start > 33.333ms) {
+                        times = i + 1;
+                        break;
+                    }
                 }
                 g_left_over += dt - newdt * times;
             }

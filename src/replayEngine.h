@@ -51,9 +51,12 @@ public:
     bool real_time = true;
     bool dual_clicks = false;
 
+    bool accuracy_fix = true;
+    bool disable_rotationfix = true;
+
     unsigned get_frame();
     void handle_recording(gd::PlayLayer *self, bool player);
-    void handle_recording2(unsigned frame, bool player, bool hold);
+    void handle_recording2(bool player, bool hold);
     void handle_playing(gd::PlayLayer *self);
     void handle_reseting(gd::PlayLayer *self);
     void remove_actions(unsigned frame);
@@ -78,11 +81,10 @@ extern Replay replay;
 
 class PracticeFix
 {
-private:
+public:
     vector<CheckpointData> checkpoints_p1;
     vector<CheckpointData> checkpoints_p2;
 
-public:
     void handle_checkpoint(gd::PlayLayer *self);
     bool fix_respawn(gd::PlayLayer *self);
     void delete_last()

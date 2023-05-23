@@ -32,5 +32,8 @@ namespace hooks
     inline void(__thiscall *playLayer_togglePractice)(void *self, bool practice);
     void __fastcall playLayer_togglePracticeHook(void *self, int edx, bool practice);
 
+    inline void(__thiscall* dispatchKeyboardMSG)(void* self, int key, bool down);
+    void __fastcall dispatchKeyboardMSGHook(void* self, void*, int key, bool down);
+
     void initHooks();
 }

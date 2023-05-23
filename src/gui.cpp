@@ -4,12 +4,14 @@
 #include <imgui_internal.h>
 #include <imgui-hook.hpp>
 #include <shellapi.h>
+#include <chrono>
 #include "replayEngine.h"
 #include "hooks.h"
 #include "hacks.h"
+#include "recorder.hpp"
 
 static int currentTab = 0;
-bool gui::show = true;
+bool gui::show = false;
 bool gui::inited = false;
 bool meta = true;
 
@@ -19,6 +21,7 @@ void MetaRender()
     {
         auto pl = gd::GameManager::sharedState()->getPlayLayer();
         ImGui::SetNextWindowPos(ImVec2(0, 0));
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 1);
         ImGui::Begin("Meta", 0, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoBringToFrontOnFocus);
         if (pl)
         {
@@ -41,6 +44,7 @@ void MetaRender()
         }
         ImGuiHook::blockMetaInput = !ImGui::IsWindowHovered(ImGuiHoveredFlags_None);
         ImGui::End();
+        ImGui::PopStyleVar();
     }
 }
 
@@ -56,7 +60,7 @@ void SelectReplay()
     ImVec2 inputTextPos = itemRectMax;
     ImGui::GetWindowDrawList()->AddLine(ImVec2(inputTextPos.x, inputTextPos.y - itemRectSize.y - 1),
                                         ImVec2(inputTextPos.x, inputTextPos.y - 1),
-                                        ImColor(ImGui::GetStyleColorVec4(ImGuiCol_Border)));
+                                        ImColor(255, 255, 255, int(ImGui::GetStyle().Alpha * 255)));
 
     ImGui::SameLine(0, 0);
 
@@ -96,7 +100,7 @@ void SelectReplay()
     }
 }
 
-char *items[] = {"General", "Assist", "Hacks", "About"};
+char *items[] = {"General", "Assist", "Hacks", "Recorder", "About"};
 int items_index = 0;
 
 void gui::BeginWindow(const char *title)
@@ -107,8 +111,8 @@ void gui::BeginWindow(const char *title)
     ImVec2 pos = ImGui::GetCursorScreenPos();
     ImVec2 endPos = ImVec2(pos.x + ImGui::GetContentRegionAvailWidth(), pos.y + 4);
     ImDrawList *drawList = ImGui::GetWindowDrawList();
-    ImU32 startColor = ImColor(131, 96, 195, 255);
-    ImU32 endColor = ImColor(46, 191, 145, 255);
+    ImU32 startColor = ImColor(76, 81, 84, int(ImGui::GetStyle().Alpha * 255));
+    ImU32 endColor = ImColor(145, 148, 150, int(ImGui::GetStyle().Alpha * 255));
     drawList->AddRectFilledMultiColor(pos, endPos, startColor, endColor, endColor, startColor);
     ImGui::Spacing();
 }
@@ -116,18 +120,29 @@ void gui::BeginWindow(const char *title)
 void gui::Render()
 {
     MetaRender();
+
     if (gui::show)
-    {
+    {        
         if (!gui::inited)
         {
-            ImGui::SetNextWindowSize(ImVec2(600, 400));
-            ImGui::SetNextWindowPos(ImVec2(10, 10));
             gui::inited = true;
+            ImGui::SetNextWindowSize(ImVec2(600, 400));
+            ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+            ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+            hacks::load();            
         }
         BeginWindow("Replay Engine");
+
+        //dont know the best way to reinit imgui window stuff when fullscreen toggle happens
+        ImVec2 windowSize = ImGui::GetWindowSize();
+        if (windowSize.x != 600 || windowSize.y != 400) {
+            gui::inited = false;
+        }
+
         ImGui::PushStyleColor(ImGuiCol_Border, 1);
         ImGui::BeginChild("##menu", ImGui::GetContentRegionAvail(), true);
         ImGui::PopStyleColor();
+        
 
         ImGui::BeginChild("##leftside", ImVec2(150, NULL));
         ImGui::Text("Replay Engine");
@@ -201,6 +216,7 @@ void gui::Render()
             {
                 replay.clear();
             }
+
             ImGui::Separator();
 
             ImGui::PushItemWidth(135.f);
@@ -210,6 +226,20 @@ void gui::Render()
 
             ImGui::PushItemWidth(137.f);
             ImGui::DragFloat("##Speed", &replay.speed_value, 0.01f, 0.f, FLT_MAX, "Speed: %.2f");
+
+            ImGui::Separator();
+
+            bool alwaysTrue = true;
+            ImGui::Checkbox("Practice Fix", &alwaysTrue);
+            ImGui::SameLine();
+
+            ImGui::Checkbox("Accuracy Fix", &replay.accuracy_fix);
+
+            if (replay.accuracy_fix)
+            {
+                ImGui::SameLine();
+                ImGui::Checkbox("Disable Rotation Fix", &replay.disable_rotationfix);
+            }
 
             ImGui::Separator();
 
@@ -235,7 +265,7 @@ void gui::Render()
                 gd::GameManager::sharedState()->setGameVariable("0071", true);
             }
             ImGui::Separator();
-            ImGui::Text("Frame: %i\nReplay Size: %i", replay.get_frame(), replay.replay_size());
+            ImGui::Text("Frame: %i\nReplay Size: %i", replay.get_frame(), replay.replay2.size());
 
             ImGui::End();
         }
@@ -301,11 +331,108 @@ void gui::Render()
         }
         else if (items_index == 3)
         {
+            auto pl = gd::GameManager::sharedState()->getPlayLayer();
+            if (!pl) {
+                ImGui::Text("Enter the level to record it");
+            }
+            else {
+                ImGui::Text("Action");
+                ImGui::Separator();
+
+                static bool isRecording = false;
+                if (ImGui::Checkbox("Record", &isRecording)) {
+                    if (isRecording) {
+                        recorder.start("ReplayEngine/Videos/" + string(recorder.video_name));
+                    }
+                    else {
+                        recorder.stop();
+                    }
+                    
+                }
+
+                ImGui::SameLine();
+
+                ImGui::Checkbox("Render Until the End", &recorder.m_until_end);
+                ImGui::SameLine();
+
+                ImGui::Checkbox("Include Audio", &recorder.m_include_audio);     
+                ImGui::PushItemWidth(260);     
+                ImGui::InputText("##replay_name", recorder.video_name, IM_ARRAYSIZE(recorder.video_name));
+
+                ImGui::Spacing();
+
+                ImGui::Text("Resolution:");
+                ImGui::Separator(); 
+
+                ImGui::PushItemWidth(40);
+                ImGui::InputInt("##width", &recorder.m_width, 0);
+                ImGui::SameLine(0, 5);
+
+                ImGui::Text("x");
+                ImGui::SameLine(0, 5);
+
+                ImGui::PushItemWidth(40);
+                ImGui::InputInt("##height", &recorder.m_height, 0);
+                ImGui::SameLine(0, 5);
+
+                ImGui::Text("@");
+                ImGui::SameLine(0, 5);
+
+                ImGui::PushItemWidth(30);
+                ImGui::InputInt("##fps", &recorder.m_fps, 0);
+
+                ImGui::Spacing();
+
+                ImGui::Text("Encoding Settings");
+                ImGui::Separator(); 
+
+                char bitrate[128];
+                strcpy_s(bitrate, recorder.m_bitrate.c_str());
+                ImGui::PushItemWidth(50);
+                if (ImGui::InputText("Bitrate", bitrate, sizeof(bitrate))) {
+                    recorder.m_bitrate = string(bitrate);
+                }
+
+                ImGui::SameLine();
+
+                char codec[128];
+                strcpy_s(codec, recorder.m_codec.c_str());
+                ImGui::PushItemWidth(80);
+                if (ImGui::InputText("Codec", codec, sizeof(codec))) {
+                    recorder.m_codec = string(codec);
+                }
+
+                char extra_args[512];
+                strcpy_s(extra_args, recorder.m_extra_args.c_str());
+                ImGui::PushItemWidth(260);
+                if (ImGui::InputText("Extra Arguments", extra_args, sizeof(extra_args))) {
+                    recorder.m_extra_args = string(extra_args);
+                }
+
+                char extra_args_audio[512];
+                strcpy_s(extra_args_audio, recorder.m_extra_audio_args.c_str());
+                ImGui::PushItemWidth(260);
+                if (ImGui::InputText("Extra Arguments (Audio)", extra_args_audio, sizeof(extra_args_audio))) {
+                    recorder.m_extra_audio_args = string(extra_args_audio);
+                }
+
+                ImGui::Spacing();
+
+                ImGui::Text("Level Settings");
+                ImGui::Separator(); 
+
+                ImGui::InputFloat("Second to Render After", &recorder.m_after_end_duration, 1);
+
+            }
+          
+        }
+        else if (items_index == 4)
+        {
             ImGui::Text("About");
             ImGui::Separator();
-            ImGui::Text("Replay Engine v1.0 by TobyAdd");
+            ImGui::Text("Replay Engine Beta 2 by TobyAdd");
             if (ImGui::MenuItem("Graphical interface is made using ImGui"))
-                ShellExecute(NULL, "open", "https://github.com/ocornut/imgui", NULL, NULL, SW_SHOWNORMAL);
+                ShellExecuteA(NULL, "open", "https://github.com/ocornut/imgui", NULL, NULL, SW_SHOWNORMAL);
             ImGui::Spacing();
             ImGui::Text("Keybinds");
             ImGui::Separator();
@@ -319,6 +446,8 @@ void gui::Render()
             ImGui::Separator();
             ImGui::Text("FireMario211 - For the GD Mod example");
             ImGui::Text("HJfod - Help with some coding stuff");
+            ImGui::Text("Mat - Internal Recorder");
+            ImGui::Text("Absolute - Hacks");
         }
 
         ImGui::EndChild();
@@ -329,4 +458,6 @@ void gui::Render()
 void gui::Toggle()
 {
     gui::show = !gui::show;
+    opennedSP = false;
+
 }

@@ -2,6 +2,8 @@
 #include "replayEngine.h"
 #include <imgui-hook.hpp>
 #include <imgui.h>
+#include "hacks.h"
+#include "recorder.hpp"
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -10,6 +12,9 @@ namespace hooks
     bool __fastcall playLayer_initHook(gd::PlayLayer *self, int edx, gd::GJGameLevel *level)
     {
         auto ret = playLayer_init(self, level);
+        recorder.update_song_offset(self);
+        strcpy_s(replay.replay_name, self->m_level->levelName.c_str());
+        strcpy_s(recorder.video_name, string(self->m_level->levelName + ".mp4").c_str());
         practiceFix.frame_offset = 0;
         practiceFix.clear();
         return ret;
@@ -17,6 +22,8 @@ namespace hooks
 
     void __fastcall playLayer_updateHook(gd::PlayLayer *self, int edx, float deltaTime)
     {
+        if (recorder.m_recording)
+            recorder.handle_recording(self, deltaTime);
         playLayer_update(self, deltaTime);
         if (replay.mode == play)
         {
@@ -49,6 +56,8 @@ namespace hooks
     void __fastcall playLayer_onQuitHook(gd::PlayLayer *self)
     {
         playLayer_onQuit(self);
+        if (replay.mode == record)
+            replay.mode = disable;
         frameAdvance.enabled = false;
     }
 
@@ -61,23 +70,20 @@ namespace hooks
 
     bool __fastcall playLayer_pushButtonHook(gd::PlayLayer *self, uintptr_t, int state, bool player)
     {
-        if (self->m_isDead && replay.mode == record)
-            return false;
-        else if (replay.mode == play && replay.ignore_input)
+        if (replay.mode == play && replay.ignore_input)
             return false;
 
         bool ret = playLayer_pushButton(self, state, player);
 
-        unsigned frame = replay.get_frame();
         if (replay.mode == record && !self->m_isDead)
-            replay.handle_recording2(frame, player, true);
+            replay.handle_recording2(player, true);
 
         if (replay.dual_clicks)
         {
             playLayer_pushButton(self, 0, !player);
             if (replay.mode == record)
             {
-                replay.handle_recording2(frame, !player, true);
+                replay.handle_recording2(!player, true);
             }
         }
 
@@ -86,23 +92,21 @@ namespace hooks
 
     bool __fastcall playLayer_releaseButtonHook(gd::PlayLayer *self, uintptr_t, int state, bool player)
     {
-        if (self->m_isDead && replay.mode == record)
-            return false;
-        else if (replay.mode == play && replay.ignore_input)
+        if (replay.mode == play && replay.ignore_input)
             return false;
 
         bool ret = playLayer_releaseButton(self, state, player);
 
         unsigned frame = replay.get_frame();
         if (replay.mode == record && !self->m_isDead)
-            replay.handle_recording2(frame, player, false);
+            replay.handle_recording2(player, false);
 
         if (replay.dual_clicks)
         {
             playLayer_releaseButton(self, 0, !player);
             if (replay.mode == record)
             {
-                replay.handle_recording2(frame, !player, false);
+                replay.handle_recording2(!player, false);
             }
         }
 
@@ -130,119 +134,39 @@ namespace hooks
         practiceFix.update_frame_offset();
     }
 
-    void(__thiscall *CCEGLView_pollEvents)(CCEGLView *);
-    void __fastcall CCEGLView_pollEvents_H(CCEGLView *self)
-    {
-        auto &io = ImGui::GetIO();
-
+    void __fastcall dispatchKeyboardMSGHook(void* self, void*, int key, bool down) {
+        dispatchKeyboardMSG(self, key, down);
         auto pl = gd::GameManager::sharedState()->getPlayLayer();
 
-        bool blockInput = false;
-        MSG msg;
-        while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-        {
-            TranslateMessage(&msg);
-
-            if (io.WantCaptureMouse)
+        if (pl && down && key == 'C') {
+            frameAdvance.enabled = true;
+            frameAdvance.triggered = true;
+        }
+        else if (pl && down && key == 'F') {
+            frameAdvance.enabled = false;
+        }
+        else if (pl && down && key == 'S') {
+            spamBot.enabled = !spamBot.enabled;
+            spamBot.reset_temp();
+            if (!spamBot.enabled)
             {
-                switch (msg.message)
-                {
-                case WM_LBUTTONDBLCLK:
-                case WM_LBUTTONDOWN:
-                case WM_LBUTTONUP:
-                case WM_MBUTTONDBLCLK:
-                case WM_MBUTTONDOWN:
-                case WM_MBUTTONUP:
-                case WM_MOUSEACTIVATE:
-                case WM_MOUSEHOVER:
-                case WM_MOUSEHWHEEL:
-                case WM_MOUSELEAVE:
-                case WM_MOUSEMOVE:
-                case WM_MOUSEWHEEL:
-                case WM_NCLBUTTONDBLCLK:
-                case WM_NCLBUTTONDOWN:
-                case WM_NCLBUTTONUP:
-                case WM_NCMBUTTONDBLCLK:
-                case WM_NCMBUTTONDOWN:
-                case WM_NCMBUTTONUP:
-                case WM_NCMOUSEHOVER:
-                case WM_NCMOUSELEAVE:
-                case WM_NCMOUSEMOVE:
-                case WM_NCRBUTTONDBLCLK:
-                case WM_NCRBUTTONDOWN:
-                case WM_NCRBUTTONUP:
-                case WM_NCXBUTTONDBLCLK:
-                case WM_NCXBUTTONDOWN:
-                case WM_NCXBUTTONUP:
-                case WM_RBUTTONDBLCLK:
-                case WM_RBUTTONDOWN:
-                case WM_RBUTTONUP:
-                case WM_XBUTTONDBLCLK:
-                case WM_XBUTTONDOWN:
-                case WM_XBUTTONUP:
-                    blockInput = ImGuiHook::blockMetaInput;
-                }
+                hooks::playLayer_releaseButtonHook(pl, 0, 0, true);
+                hooks::playLayer_releaseButtonHook(pl, 0, 0, false);
             }
-
-            if (io.WantCaptureKeyboard)
+        }
+        else if (pl && down && key == 'D') {
+            straightFly.enabled = !straightFly.enabled;
+            straightFly.start(pl);
+            if (!straightFly.enabled)
             {
-                switch (msg.message)
-                {
-                case WM_HOTKEY:
-                case WM_KEYDOWN:
-                case WM_KEYUP:
-                case WM_KILLFOCUS:
-                case WM_SETFOCUS:
-                case WM_SYSKEYDOWN:
-                case WM_SYSKEYUP:
-                    blockInput = true;
-                }
+                hooks::playLayer_releaseButtonHook(pl, 0, 0, true);
+                hooks::playLayer_releaseButtonHook(pl, 0, 0, false);
             }
-            else if (msg.message == WM_KEYDOWN && msg.wParam == 'K')
-            {
-                ImGuiHook::g_toggleCallback();
-            }
-            else if (msg.message == WM_KEYDOWN && msg.wParam == 'C' && pl)
-            {
-                frameAdvance.enabled = true;
-                frameAdvance.triggered = true;
-            }
-            else if (msg.message == WM_KEYDOWN && msg.wParam == 'F' && pl)
-            {
-                frameAdvance.enabled = false;
-            }
-            else if (msg.message == WM_KEYDOWN && msg.wParam == 'S' && pl)
-            {
-                spamBot.enabled = !spamBot.enabled;
-                spamBot.reset_temp();
-                if (!spamBot.enabled)
-                {
-                    hooks::playLayer_releaseButtonHook(pl, 0, 0, true);
-                    hooks::playLayer_releaseButtonHook(pl, 0, 0, false);
-                }
-            }
-            else if (msg.message == WM_KEYDOWN && msg.wParam == 'D' && pl)
-            {
-                straightFly.enabled = !straightFly.enabled;
-                straightFly.start(pl);
-                if (!straightFly.enabled)
-                {
-                    hooks::playLayer_releaseButtonHook(pl, 0, 0, true);
-                    hooks::playLayer_releaseButtonHook(pl, 0, 0, false);
-                }
-            }
-            else if (msg.message == WM_KEYDOWN && msg.wParam == 'R' && pl)
-            {
-                hooks::playLayer_resetLevelHook(pl);
-            }
-
-            if (!blockInput)
-                DispatchMessage(&msg);
-
-            ImGui_ImplWin32_WndProcHandler(msg.hwnd, msg.message, msg.wParam, msg.lParam);
+        }
+        else if (pl && down && key == 'R') {
+            hooks::playLayer_resetLevelHook(pl);
         }
 
-        CCEGLView_pollEvents(self);
     }
 
     void initHooks()
@@ -257,7 +181,9 @@ namespace hooks
         MH_CreateHook((PVOID)(gd::base + 0x20B050), playLayer_createCheckpointHook, (LPVOID *)&playLayer_createCheckpoint);
         MH_CreateHook((PVOID)(gd::base + 0x20B830), playLayer_removeCheckpointHook, (LPVOID *)&playLayer_removeCheckpoint);
         MH_CreateHook((PVOID)(gd::base + 0x20D0D0), playLayer_togglePracticeHook, (LPVOID *)&playLayer_togglePractice);
-        MH_CreateHook(GetProcAddress(GetModuleHandleA("libcocos2d.dll"), "?pollEvents@CCEGLView@cocos2d@@QAEXXZ"), CCEGLView_pollEvents_H,
-            reinterpret_cast<void **>(&CCEGLView_pollEvents));
+        MH_CreateHook(
+            (PVOID)(GetProcAddress(GetModuleHandleA("libcocos2d.dll"), "?dispatchKeyboardMSG@CCKeyboardDispatcher@cocos2d@@QAE_NW4enumKeyCodes@2@_N@Z")),
+            dispatchKeyboardMSGHook, (LPVOID*)&dispatchKeyboardMSG
+        );
     }
 }

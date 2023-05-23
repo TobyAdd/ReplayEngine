@@ -20,7 +20,25 @@ void Replay::handle_recording(gd::PlayLayer *self, bool player)
 {
     if (!player && !self->m_isDualMode)
         return;
-    replay.push_back({get_frame(),
+
+    unsigned frame = get_frame();
+
+    bool frameExists = false;
+    for (const auto &data : replay)
+    {
+        if (data.frame == frame && data.player == player)
+        {
+            frameExists = true;
+            break;
+        }
+    }
+
+    if (frameExists)
+    {
+        return;
+    }
+
+    replay.push_back({frame,
                       player ? self->m_player1->m_position.x : self->m_player2->m_position.x,
                       player ? self->m_player1->m_position.y : self->m_player2->m_position.y,
                       player ? self->m_player1->getRotation() : self->m_player2->getRotation(),
@@ -28,31 +46,40 @@ void Replay::handle_recording(gd::PlayLayer *self, bool player)
                       player});
 }
 
-void Replay::handle_recording2(unsigned frame, bool player, bool hold)
+void Replay::handle_recording2(bool player, bool hold)
 {
-    replay2.push_back({frame, hold, player});
+    replay2.push_back({get_frame(), hold, player});
 }
 
 void Replay::handle_playing(gd::PlayLayer *self)
 {
     unsigned frame = get_frame();
-    while (index < (int)replay.size() && frame >= replay[index].frame)
+    if (accuracy_fix)
     {
-        if (replay[index].player)
+        while (index < (int)replay.size() && frame >= replay[index].frame)
         {
-            self->m_player1->m_position.x = replay[index].x;
-            self->m_player1->m_position.y = replay[index].y;
-            self->m_player1->setRotation(replay[index].rotation);
-            self->m_player1->m_yAccel = replay[index].y_accel;
+            if (replay[index].player)
+            {
+                self->m_player1->m_position.x = replay[index].x;
+                self->m_player1->m_position.y = replay[index].y;
+                if (!disable_rotationfix)
+                {
+                    self->m_player1->setRotation(replay[index].rotation);
+                }
+                self->m_player1->m_yAccel = replay[index].y_accel;
+            }
+            else
+            {
+                self->m_player2->m_position.x = replay[index].x;
+                self->m_player2->m_position.y = replay[index].y;
+                if (!disable_rotationfix)
+                {
+                    self->m_player2->setRotation(replay[index].rotation);
+                }
+                self->m_player2->m_yAccel = replay[index].y_accel;
+            }
+            index++;
         }
-        else
-        {
-            self->m_player2->m_position.x = replay[index].x;
-            self->m_player2->m_position.y = replay[index].y;
-            self->m_player2->setRotation(replay[index].rotation);
-            self->m_player2->m_yAccel = replay[index].y_accel;
-        }
-        index++;
     }
 
     while (index2 < (int)replay2.size() && frame >= replay2[index2].frame)
@@ -97,6 +124,25 @@ void Replay::handle_reseting(gd::PlayLayer *self)
                 if (mode == record)
                 {
                     remove_actions(get_frame());
+                    bool holding = self->m_player1->m_isHolding;
+                    if ((holding && replay2.empty()) || (!replay2.empty() && replay2.back().hold != holding))
+                    {
+                        handle_recording2(true, holding);
+                        if (holding)
+                        {
+                            hooks::playLayer_releaseButton(self, 0, true);
+                            hooks::playLayer_pushButton(self, 0, true);
+                            self->m_player1->m_hasJustHeld = true;
+                        }
+                    }
+                    else if (!replay2.empty() && replay2.back().hold && holding && !practiceFix.checkpoints_p1.empty() &&
+                             practiceFix.checkpoints_p1.back().has_just_held)
+                    {
+                        hooks::playLayer_releaseButton(self, 0, true);
+                        hooks::playLayer_pushButton(self, 0, true);
+                    }
+                    if (self->m_levelSettings->m_twoPlayerMode)
+                        handle_recording(false, false);
                 }
             }
             else
@@ -247,16 +293,16 @@ bool PracticeFix::fix_respawn(gd::PlayLayer *self)
     self->m_player1->m_yAccel = checkpoints_p1.back().y_accel;
     self->m_player1->m_jumpAccel = checkpoints_p1.back().jump_accel;
     self->m_player1->m_isUpsideDown = checkpoints_p1.back().is_upsidedown;
-    self->m_player1->m_canRobotJump = checkpoints_p1.back().can_robot_jump;
-    self->m_player1->m_isOnGround = checkpoints_p1.back().is_on_ground;
-    self->m_player1->m_isDashing = checkpoints_p1.back().is_dashing;
-    self->m_player1->m_isSliding = checkpoints_p1.back().is_sliding;
-    self->m_player1->m_isRising = checkpoints_p1.back().is_rising;
+    // self->m_player1->m_canRobotJump = checkpoints_p1.back().can_robot_jump;
+    // self->m_player1->m_isOnGround = checkpoints_p1.back().is_on_ground;
+    // self->m_player1->m_isDashing = checkpoints_p1.back().is_dashing;
+    // self->m_player1->m_isSliding = checkpoints_p1.back().is_sliding;
+    // self->m_player1->m_isRising = checkpoints_p1.back().is_rising;
     self->m_player1->black_orb = checkpoints_p1.back().black_orb;
-    self->m_player1->m_isHolding = checkpoints_p1.back().is_holding;
-    self->m_player1->m_isHolding2 = checkpoints_p1.back().is_holding2;
-    self->m_player1->m_hasJustHeld = checkpoints_p1.back().has_just_held;
-    self->m_player1->m_hasJustHeld2 = checkpoints_p1.back().has_just_held2;
+    // self->m_player1->m_isHolding = checkpoints_p1.back().is_holding;
+    // self->m_player1->m_isHolding2 = checkpoints_p1.back().is_holding2;
+    // self->m_player1->m_hasJustHeld = checkpoints_p1.back().has_just_held;
+    // self->m_player1->m_hasJustHeld2 = checkpoints_p1.back().has_just_held2;
 
     self->m_player2->m_position.x = checkpoints_p2.back().pos_x;
     self->m_player2->m_position.y = checkpoints_p2.back().pos_y;
@@ -267,16 +313,16 @@ bool PracticeFix::fix_respawn(gd::PlayLayer *self)
     self->m_player2->m_yAccel = checkpoints_p2.back().y_accel;
     self->m_player2->m_jumpAccel = checkpoints_p2.back().jump_accel;
     self->m_player2->m_isUpsideDown = checkpoints_p2.back().is_upsidedown;
-    self->m_player2->m_canRobotJump = checkpoints_p2.back().can_robot_jump;
-    self->m_player2->m_isOnGround = checkpoints_p2.back().is_on_ground;
-    self->m_player2->m_isDashing = checkpoints_p2.back().is_dashing;
-    self->m_player2->m_isSliding = checkpoints_p2.back().is_sliding;
-    self->m_player2->m_isRising = checkpoints_p2.back().is_rising;
+    // self->m_player2->m_canRobotJump = checkpoints_p2.back().can_robot_jump;
+    // self->m_player2->m_isOnGround = checkpoints_p2.back().is_on_ground;
+    // self->m_player2->m_isDashing = checkpoints_p2.back().is_dashing;
+    // self->m_player2->m_isSliding = checkpoints_p2.back().is_sliding;
+    // self->m_player2->m_isRising = checkpoints_p2.back().is_rising;
     self->m_player2->black_orb = checkpoints_p2.back().black_orb;
-    self->m_player2->m_isHolding = checkpoints_p2.back().is_holding;
-    self->m_player2->m_isHolding2 = checkpoints_p2.back().is_holding2;
-    self->m_player2->m_hasJustHeld = checkpoints_p2.back().has_just_held;
-    self->m_player2->m_hasJustHeld2 = checkpoints_p2.back().has_just_held2;
+    // self->m_player2->m_isHolding = checkpoints_p2.back().is_holding;
+    // self->m_player2->m_isHolding2 = checkpoints_p2.back().is_holding2;
+    // self->m_player2->m_hasJustHeld = checkpoints_p2.back().has_just_held;
+    // self->m_player2->m_hasJustHeld2 = checkpoints_p2.back().has_just_held2;
     return true;
 }
 

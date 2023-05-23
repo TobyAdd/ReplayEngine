@@ -9,6 +9,8 @@ project(${PROJECT})
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp)
 add_library(${PROJECT} SHARED ${SOURCE_FILES})
 
+add_compile_definitions(UNICODE _UNICODE)
+
 target_include_directories(${PROJECT} PRIVATE
   libs/minhook/include
   libs/gd.h/include
@@ -25,6 +27,7 @@ target_link_libraries(${PROJECT} minhook imgui-hook opengl32 cocos2d)
 
 target_link_libraries(${PROJECT} ${CMAKE_SOURCE_DIR}/libs/cocos-headers/cocos2dx/libcocos2d.lib)
 target_link_libraries(${PROJECT} ${CMAKE_SOURCE_DIR}/libs/cocos-headers/extensions/libExtensions.lib)
+target_link_libraries(${PROJECT} ${CMAKE_SOURCE_DIR}/libs/glew32.lib)
 
 # add_custom_command(TARGET ${PROJECT} POST_BUILD
 #                    COMMAND ${CMAKE_COMMAND} -E copy
