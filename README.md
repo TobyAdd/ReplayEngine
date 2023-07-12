@@ -5,7 +5,8 @@ ReplayEngine is a redesigned and improved project that offers more accurate macr
 # Download
 https://github.com/TobyAdd/ReplayEngine/releases
 # How to install
-You need to inject a DLL into Geometry Dash. You can use [Cheat Engine](https://www.cheatengine.org/index.php) or [another injector](https://www.google.com/search?q=dll+injector). Do not inject it with Mega Hack as it may not work properly. You can use [GDDLLLoader](https://github.com/adafcaefc/GDDllLoader) to inject it
+You need to inject a DLL into Geometry Dash. You can use [Cheat Engine](https://www.cheatengine.org/index.php) or [another injector](https://www.google.com/search?q=dll+injector). Do not inject it with Mega Hack as it may not work properly. You can use [GDDLLLoader](https://github.com/adafcaefc/GDDllLoader) to inject it  
+Press K to open UI
 # Screenshot
 ![image](https://github.com/TobyAdd/ReplayEngine/assets/66429886/f31b093e-eb6d-4718-918b-0d7cdca19c29)
 # Features
