@@ -5,16 +5,33 @@ ReplayEngine is a redesigned and improved project that offers more accurate macr
 # Download
 https://github.com/TobyAdd/ReplayEngine/releases
 # How to install
-You need to inject a DLL into Geometry Dash. You can use [Cheat Engine](https://www.cheatengine.org/index.php) or [another injector](https://www.google.com/search?q=dll+injector). Do not inject it with Mega Hack as it may not work properly. You can use [GDDLLLoader](https://github.com/adafcaefc/GDDllLoader) to inject it
-# Screenshot (design is not finished yet)
-![sc](https://user-images.githubusercontent.com/66429886/233846048-7295ea54-f768-48b5-879a-51904c066a1a.png)
+You need to inject a DLL into Geometry Dash. You can use [Cheat Engine](https://www.cheatengine.org/index.php) or [another injector](https://www.google.com/search?q=dll+injector). You can use [GDDLLLoader](https://github.com/adafcaefc/GDDllLoader) to install it or Mega Hack extensions  
+# Screenshot
+![image](https://github.com/TobyAdd/ReplayEngine/assets/66429886/041a44ea-6fd9-4b20-90d4-2dd42d85000c)
+# Keybinds
+K - Toggle UI  
+C - Enable Frame Advance + Next Frame  
+V - Disable Frame Advance  
+P - Toggle Playback
 # Features
-- Accurate replay recording 
+- Fresh Desing
+- Accurate replay recording
+- Continue Mode
 - Intergrated FPS Bypass and Speedhack
+- Real Time Playing
+- Practice Fix, Accuracy Fix
+- Ignore Inputs on Playback
 - Frame Advance
 - Spam Bot
 - Straight Fly Bot
 - Dual Clicks
+- Noclip 2P
+- Hacks pack
+- Editor
+- Internal Recorder
+- Converter
+- Sequence
+- Clickbot (Non live)
 # Special Thanks  
 [@FireMario211](https://github.com/FireMario211) - For the development of the GD Mod example.  
 [@HJfod](https://github.com/HJfod) - Help with some coding stuff.
