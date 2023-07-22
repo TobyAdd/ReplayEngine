@@ -1,5 +1,7 @@
 # Note
-ReplayEngine is currently in beta development, and half of the features may not be available compared to DashReplay
+ReplayEngine is currently in beta development, and half of the features may not be available compared to DashReplay   
+To make Internal Recorder work, you need to download and place [ffmpeg.exe](https://github.com/AnimMouse/ffmpeg-autobuild) file into Geometry Dash folder  
+To make clickbot work, you need to download and place [clicks.exe](https://github.com/TobyAdd/clicks/releases) file into Geometry Dash folder
 # About
 ReplayEngine is a redesigned and improved project that offers more accurate macro recording and a more flexible interface than DashReplay
 # Download
@@ -34,4 +36,7 @@ P - Toggle Playback
 - Clickbot (Non live)
 # Special Thanks  
 [@FireMario211](https://github.com/FireMario211) - For the development of the GD Mod example.  
-[@HJfod](https://github.com/HJfod) - Help with some coding stuff.
+[@HJfod](https://github.com/HJfod) - Help with some coding stuff  
+[@matcool](https://github.com/matcool) - Internal Recorder  
+[@absoIute](https://github.com/absoIute) - Hacks  
+[@thisisignitedoreo](https://github.com/thisisignitedoreo) - Clickbot
