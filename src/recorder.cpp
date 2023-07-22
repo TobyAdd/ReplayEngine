@@ -10,7 +10,7 @@ Recorder::Recorder() :
     m_height(720), 
     m_fps(60) {}
 
-void Recorder::start(const std::string& path) {
+void Recorder::start(const string& path) {
     m_recording = true;
     m_frame_has_data = false;
     m_current_frame.resize(m_width * m_height * 3, 0);
@@ -31,8 +31,8 @@ void Recorder::start(const std::string& path) {
         song_file = CCFileUtils::sharedFileUtils()->fullPathForFilename(song_file.c_str(), false);
     auto is_testmode = play_layer->m_isTestMode;
     auto song_offset = m_song_start_offset;
-    std::thread([&, path, song_file, fade_in, fade_out, bg_volume, sfx_volume, is_testmode, song_offset]() {
-        std::stringstream stream;
+    thread([&, path, song_file, fade_in, fade_out, bg_volume, sfx_volume, is_testmode, song_offset]() {
+        stringstream stream;
         stream << '"' << m_ffmpeg_path << '"' << " -y -f rawvideo -pix_fmt rgb24 -s " << m_width << "x" << m_height << " -r " << m_fps
                << " -i - ";
         if (!m_codec.empty())
@@ -59,15 +59,13 @@ void Recorder::start(const std::string& path) {
         if (process.close()) {
             return;
         }
-        if (!m_include_audio || !std::filesystem::exists(song_file))
+        if (!m_include_audio || !filesystem::exists(song_file))
             return;
 
-        std::string tempDir = std::filesystem::path("ReplayEngine/Temp").string();
-        std::filesystem::create_directory(tempDir);
-        std::string tempPath = tempDir + "/output.mp4";
-        std::string finalPath = path;
+        string tempPath = "ReplayEngine/Temp/output.mp4";
+        string finalPath = path;
         {
-            std::stringstream stream;
+            stringstream stream;
             stream << '"' << m_ffmpeg_path << '"' << " -y -ss " << song_offset << " -i \"" << song_file
                 << "\" -i \"" << path << "\" -t " << m_last_frame_t << " -c:v copy ";
             if (!m_extra_audio_args.empty())
@@ -83,8 +81,8 @@ void Recorder::start(const std::string& path) {
                 return;
             }
         }
-        std::filesystem::remove(finalPath);
-        std::filesystem::rename(tempPath, finalPath);
+        filesystem::remove(finalPath);
+        filesystem::rename(tempPath, finalPath);
     }).detach();
 }
 
@@ -112,7 +110,7 @@ void MyRenderTexture::begin() {
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, m_old_fbo);
 }
 
-void MyRenderTexture::capture(std::mutex& lock, std::vector<uint8_t>& data, volatile bool& lul) {
+void MyRenderTexture::capture(mutex& lock, vector<uint8_t>& data, volatile bool& lul) {
     glViewport(0, 0, m_width, m_height);
 
     glGetIntegerv(GL_FRAMEBUFFER_BINDING_EXT, &m_old_fbo);

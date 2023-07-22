@@ -6,24 +6,33 @@ json hacksContent;
 
 namespace hacks
 {
+    bool noclipP1;
+    bool noclipP2;
+    bool disable_achievements;
     void render()
     {
-        if (ImGui::BeginTabBar("Hacks")) {
-            for (auto& item : hacksContent.items()) {
-                if (ImGui::BeginTabItem(item.key().c_str())) {
+        if (ImGui::BeginTabBar("Hacks"))
+        {
+            for (auto &item : hacksContent.items())
+            {
+                if (ImGui::BeginTabItem(item.key().c_str()))
+                {
                     ImGui::BeginChild("HacksChild");
 
-                    json& tabContent = item.value();
+                    json &tabContent = item.value();
 
-                    for (size_t i = 0; i < tabContent.size(); i++) {
-                        json& itemHack = tabContent.at(i);
+                    for (size_t i = 0; i < tabContent.size(); i++)
+                    {
+                        json &itemHack = tabContent.at(i);
                         bool enabled = itemHack["enabled"];
 
-                        if (ImGui::Checkbox(itemHack["name"].get<string>().c_str(), &enabled)) {
+                        if (ImGui::Checkbox(itemHack["name"].get<string>().c_str(), &enabled))
+                        {
                             itemHack["enabled"] = enabled;
 
                             json opcodes = itemHack["opcodes"];
-                            for (auto& opcode : opcodes) {
+                            for (auto &opcode : opcodes)
+                            {
                                 string addrStr = opcode["addr"];
                                 string bytesStr = enabled ? opcode["on"] : opcode["off"];
 
@@ -31,7 +40,8 @@ namespace hacks
                                 sscanf_s(addrStr.c_str(), "%x", &address);
 
                                 DWORD base = gd::base;
-                                if (!opcode["lib"].is_null() && string(opcode["lib"]) == "libcocos2d.dll") {
+                                if (!opcode["lib"].is_null() && string(opcode["lib"]) == "libcocos2d.dll")
+                                {
                                     base = (DWORD)GetModuleHandleA("libcocos2d.dll");
                                 }
 
@@ -56,7 +66,8 @@ namespace hacks
         }
     }
 
-    void load() {
+    void load()
+    {
         ifstream file("ReplayEngine/hacks.json");
         if (!file.is_open())
             return;
@@ -66,18 +77,23 @@ namespace hacks
 
         hacksContent = json::parse(file_content);
 
-        for (auto item : hacksContent.items()) {
+        for (auto item : hacksContent.items())
+        {
             json tabContent = item.value();
-            for (size_t i = 0; i < tabContent.size(); i++) {
+            for (size_t i = 0; i < tabContent.size(); i++)
+            {
                 json itemHack = tabContent.at(i);
-                if (itemHack["enabled"]) {
+                if (itemHack["enabled"])
+                {
                     json opcodes = itemHack["opcodes"];
-                    for (int j = 0; j < (int)opcodes.size(); j++) {
+                    for (int j = 0; j < (int)opcodes.size(); j++)
+                    {
                         json opcode = opcodes.at(j);
                         uintptr_t address;
                         sscanf_s(opcode["addr"].get<string>().c_str(), "%x", &address);
                         DWORD base = gd::base;
-                        if (!opcode["lib"].is_null() && string(opcode["lib"]) == "libcocos2d.dll") {
+                        if (!opcode["lib"].is_null() && string(opcode["lib"]) == "libcocos2d.dll")
+                        {
                             base = (DWORD)GetModuleHandleA("libcocos2d.dll");
                         }
 
@@ -86,27 +102,42 @@ namespace hacks
                 }
             }
         }
-
     }
 
-    bool writemem(uintptr_t address, std::string bytes) {
+    bool writemem(uintptr_t address, std::string bytes)
+    {
         std::vector<unsigned char> byteVec;
         std::stringstream byteStream(bytes);
         std::string byteStr;
 
-        while (getline(byteStream, byteStr, ' ')) {
+        while (getline(byteStream, byteStr, ' '))
+        {
             unsigned int byte = std::stoul(byteStr, nullptr, 16);
             byteVec.push_back(static_cast<unsigned char>(byte));
         }
 
         DWORD oldProtect;
-        if (VirtualProtect(reinterpret_cast<void*>(address), byteVec.size(), PAGE_EXECUTE_READWRITE, &oldProtect)) {
-            memcpy(reinterpret_cast<void*>(address), byteVec.data(), byteVec.size());
-            VirtualProtect(reinterpret_cast<void*>(address), byteVec.size(), oldProtect, &oldProtect);
+        if (VirtualProtect(reinterpret_cast<void *>(address), byteVec.size(), PAGE_EXECUTE_READWRITE, &oldProtect))
+        {
+            memcpy(reinterpret_cast<void *>(address), byteVec.data(), byteVec.size());
+            VirtualProtect(reinterpret_cast<void *>(address), byteVec.size(), oldProtect, &oldProtect);
             return true;
         }
-        else {
+        else
+        {
             return false;
+        }
+    }
+
+    void disable_achievements_f(bool enable)
+    {
+        if (enable)
+        {
+            writemem(gd::base + 0x8927, "0F 84");
+        }
+        else
+        {
+            writemem(gd::base + 0x8927, "0F 85");
         }
     }
 }

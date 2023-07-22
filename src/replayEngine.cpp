@@ -1,12 +1,13 @@
 #include "replayEngine.h"
 #include "hooks.h"
-#include <fstream>
 
 Replay replay;
 PracticeFix practiceFix;
 FrameAdvance frameAdvance;
 SpamBot spamBot;
 StraightFly straightFly;
+Converter converter;
+Sequence sequence;
 
 unsigned Replay::get_frame()
 {
@@ -23,15 +24,8 @@ void Replay::handle_recording(gd::PlayLayer *self, bool player)
 
     unsigned frame = get_frame();
 
-    bool frameExists = false;
-    for (const auto &data : replay)
-    {
-        if (data.frame == frame && data.player == player)
-        {
-            frameExists = true;
-            break;
-        }
-    }
+    bool frameExists = std::find_if(replay.begin(), replay.end(), [&](const auto &data)
+                                    { return data.frame == frame && data.player == player; }) != replay.end();
 
     if (frameExists)
     {
@@ -103,56 +97,53 @@ void Replay::handle_reseting(gd::PlayLayer *self)
     if (mode == state::play)
     {
         reset_replay();
+        hooks::playLayer_releaseButton(self, 0, true);
+        hooks::playLayer_releaseButton(self, 0, false);
     }
-    else if (mode == state::record)
+
+    auto zero_frame = [this]()
     {
-        auto zero_frame = [this]()
+        if (mode == record)
         {
+            Replay::clear();
+        }
+        practiceFix.clear();
+        practiceFix.update_frame_offset();
+        practiceFix.activated_objects_p1.clear();
+        practiceFix.activated_objects_p2.clear();
+    };
+
+    if (self->m_isPracticeMode)
+    {
+        if (practiceFix.fix_respawn(self))
+        {
+            practiceFix.update_frame_offset();
             if (mode == record)
             {
-                Replay::clear();
-            }
-            practiceFix.clear();
-            practiceFix.update_frame_offset();
-        };
-
-        if (self->m_isPracticeMode)
-        {
-            if (practiceFix.fix_respawn(self))
-            {
-                practiceFix.update_frame_offset();
-                if (mode == record)
+                remove_actions(get_frame());
+                bool holding = self->m_player1->m_isHolding;
+                if ((holding && replay2.empty()) || (!replay2.empty() && replay2.back().hold != holding))
                 {
-                    remove_actions(get_frame());
-                    bool holding = self->m_player1->m_isHolding;
-                    if ((holding && replay2.empty()) || (!replay2.empty() && replay2.back().hold != holding))
-                    {
-                        handle_recording2(true, holding);
-                        if (holding)
-                        {
-                            hooks::playLayer_releaseButton(self, 0, true);
-                            hooks::playLayer_pushButton(self, 0, true);
-                            self->m_player1->m_hasJustHeld = true;
-                        }
-                    }
-                    else if (!replay2.empty() && replay2.back().hold && holding && !practiceFix.checkpoints_p1.empty() &&
-                             practiceFix.checkpoints_p1.back().has_just_held)
+                    handle_recording2(true, holding);
+                    if (holding)
                     {
                         hooks::playLayer_releaseButton(self, 0, true);
                         hooks::playLayer_pushButton(self, 0, true);
+                        self->m_player1->m_hasJustHeld = true;
                     }
-                    if (self->m_levelSettings->m_twoPlayerMode)
-                        handle_recording(false, false);
                 }
-            }
-            else
-            {
-                zero_frame();
+
+                if (self->m_levelSettings->m_twoPlayerMode)
+                    handle_recording2(false, false);
             }
         }
         else
+        {
             zero_frame();
+        }
     }
+    else
+        zero_frame();
 }
 
 void Replay::remove_actions(unsigned frame)
@@ -189,7 +180,7 @@ void Replay::reset_replay()
 
 string Replay::save(string name)
 {
-    if (replay.empty())
+    if (replay2.empty())
         return "Replay doesn't have actions";
 
     ofstream file("ReplayEngine/Replays/" + name + ".re", std::ios::binary);
@@ -209,12 +200,19 @@ string Replay::save(string name)
     return "Replay saved";
 }
 
-string Replay::load(string name)
+string Replay::load(string name, bool overwrite)
 {
-    if (!replay.empty())
+    if (overwrite)
+    {
+        clear();
+    }
+
+    if (!replay2.empty())
         return "Please clear replay before loading another";
 
     ifstream file("ReplayEngine/Replays/" + name + ".re", std::ios::binary);
+    if (!file)
+        return "Replay doesn't exist";
 
     file.read(reinterpret_cast<char *>(&fps_value), sizeof(fps_value));
 
@@ -255,7 +253,8 @@ void PracticeFix::handle_checkpoint(gd::PlayLayer *self)
                               self->m_player1->m_isHolding,
                               self->m_player1->m_isHolding2,
                               self->m_player1->m_hasJustHeld,
-                              self->m_player1->m_hasJustHeld2});
+                              self->m_player1->m_hasJustHeld2,
+                              activated_objects_p1.size()});
 
     checkpoints_p2.push_back({replay.get_frame(),
                               self->m_player2->m_position.x,
@@ -276,7 +275,8 @@ void PracticeFix::handle_checkpoint(gd::PlayLayer *self)
                               self->m_player2->m_isHolding,
                               self->m_player2->m_isHolding2,
                               self->m_player2->m_hasJustHeld,
-                              self->m_player2->m_hasJustHeld2});
+                              self->m_player2->m_hasJustHeld2,
+                              activated_objects_p2.size()});
 }
 
 bool PracticeFix::fix_respawn(gd::PlayLayer *self)
@@ -323,6 +323,28 @@ bool PracticeFix::fix_respawn(gd::PlayLayer *self)
     // self->m_player2->m_isHolding2 = checkpoints_p2.back().is_holding2;
     // self->m_player2->m_hasJustHeld = checkpoints_p2.back().has_just_held;
     // self->m_player2->m_hasJustHeld2 = checkpoints_p2.back().has_just_held2;
+
+    if (orb_fix)
+    {
+        constexpr auto delete_from = [&](auto &vec, size_t index)
+        {
+            vec.erase(vec.begin() + index, vec.end());
+        };
+
+        delete_from(practiceFix.activated_objects_p1, practiceFix.checkpoints_p1.back().activated_objects_size);
+        delete_from(practiceFix.activated_objects_p2, practiceFix.checkpoints_p2.back().activated_objects_size);
+
+        for (const auto &object : practiceFix.activated_objects_p1)
+        {
+            object->m_hasBeenActivated = true;
+        }
+
+        for (const auto &object : practiceFix.activated_objects_p2)
+        {
+            object->m_hasBeenActivatedP2 = true;
+        }
+    }
+
     return true;
 }
 
@@ -421,4 +443,91 @@ void StraightFly::handle_straightfly(gd::PlayLayer *self)
 void StraightFly::start(gd::PlayLayer *self)
 {
     start_y = self ? self->m_player1->m_position.y : 0.0f;
+}
+
+void Converter::convert()
+{
+    if (converterType == 0 && !replay.replay2.empty())
+    {
+        ofstream out("ReplayEngine/Converter/" + string(replay_name) + ".txt");
+        out << replay.fps_value << "\n";
+        for (size_t i = 0; i < replay.replay2.size(); i++)
+        {
+            out << replay.replay2[i].frame << " " << replay.replay2[i].hold << " " << replay.replay2[i].player;
+            if (i != replay.replay2.size() - 1)
+            {
+                out << "\n";
+            }
+        }
+        out.close();
+    }
+}
+
+ReplayData2 Converter::pasreline(string line)
+{
+    istringstream splitstr(line);
+    string splitword;
+    vector<string> splitwords;
+    while (getline(splitstr, splitword, ' '))
+    {
+        splitwords.push_back(splitword);
+    }
+    return {(unsigned)(stoi(splitwords[0])), (bool)(stoi(splitwords[1])), (bool)(stoi(splitwords[2]))};
+}
+
+void Converter::import()
+{
+    if (converterType == 0)
+    {
+        ifstream file("ReplayEngine/Converter/" + string(replay_name) + ".txt");
+        if (file.is_open())
+        {
+            string line;
+            replay.clear();
+            getline(file, line);
+            replay.fps_value = stof(line);
+            while (getline(file, line))
+            {
+                replay.replay2.push_back(pasreline(line));
+            }
+        }
+        file.close();
+    }
+}
+
+int getRandomNumber(int min, int max)
+{
+    std::random_device rd;
+    std::mt19937_64 generator(rd());
+
+    std::uniform_int_distribution<int> distribution(min, max);
+
+    int randomNum = distribution(generator);
+    return randomNum;
+}
+
+void Sequence::do_some_magic()
+{
+    if (sequence.enable_sqp && replay.mode == state::play && !sequence.replays.empty())
+    {
+        if (!sequence.random_sqp)
+        {
+            if (sequence.first_sqp)
+            {
+                sequence.current_idx = 0;
+                sequence.first_sqp = false;
+            }
+            else
+                sequence.current_idx++;
+            if ((int)sequence.replays.size() <= sequence.current_idx)
+                sequence.current_idx = 0;
+            replay.load(sequence.replays[sequence.current_idx].c_str());
+        }
+        else
+        {
+            sequence.current_idx = getRandomNumber(0, (int)sequence.replays.size() - 1);
+            Console::WriteLine(to_string(sequence.current_idx) + " - " + sequence.replays[sequence.current_idx]);
+            replay.load(sequence.replays[sequence.current_idx].c_str(), true);
+        }
+    }
 }

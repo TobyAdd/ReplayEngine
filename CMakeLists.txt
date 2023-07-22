@@ -9,8 +9,6 @@ project(${PROJECT})
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp)
 add_library(${PROJECT} SHARED ${SOURCE_FILES})
 
-add_compile_definitions(UNICODE _UNICODE)
-
 target_include_directories(${PROJECT} PRIVATE
   libs/minhook/include
   libs/gd.h/include

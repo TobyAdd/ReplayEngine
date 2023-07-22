@@ -1,11 +1,13 @@
 #include "pch.h"
 #include <fstream>
+#include <random>
 
 enum state
 {
     disable,
     record,
-    play
+    play,
+    continue_record
 };
 
 struct ReplayData
@@ -32,6 +34,7 @@ struct CheckpointData
     double x_accel, y_accel, jump_accel;
     bool is_upsidedown, can_robot_jump, is_on_ground, is_dashing, is_sliding, is_rising, black_orb,
         is_holding, is_holding2, has_just_held, has_just_held2;
+    size_t activated_objects_size;
 };
 
 class Replay
@@ -51,8 +54,10 @@ public:
     bool real_time = true;
     bool dual_clicks = false;
 
+    bool practice_fix = true;
     bool accuracy_fix = true;
     bool disable_rotationfix = true;
+    bool continue_toggled = false;
 
     unsigned get_frame();
     void handle_recording(gd::PlayLayer *self, bool player);
@@ -64,7 +69,7 @@ public:
     bool empty();
     void reset_replay();
     string save(string name);
-    string load(string name);
+    string load(string name, bool overwrite = false);
     size_t replay_size() { return replay.size() + replay2.size(); }
     string replay_size_text()
     {
@@ -84,6 +89,8 @@ class PracticeFix
 public:
     vector<CheckpointData> checkpoints_p1;
     vector<CheckpointData> checkpoints_p2;
+    vector<gd::GameObject *> activated_objects_p1, activated_objects_p2;
+    bool orb_fix = true;
 
     void handle_checkpoint(gd::PlayLayer *self);
     bool fix_respawn(gd::PlayLayer *self);
@@ -102,6 +109,18 @@ public:
     }
     void update_frame_offset();
     unsigned frame_offset = 0;
+
+    void handle_activated_object(bool a, bool b, gd::GameObject *object)
+    {
+        auto play_layer = gd::GameManager::sharedState()->getPlayLayer();
+        if (play_layer && play_layer->m_isPracticeMode)
+        {
+            if (object->m_hasBeenActivated && !a)
+                activated_objects_p1.push_back(object);
+            if (object->m_hasBeenActivatedP2 && !b)
+                activated_objects_p2.push_back(object);
+        }
+    }
 };
 
 extern PracticeFix practiceFix;
@@ -149,3 +168,32 @@ private:
 };
 
 extern StraightFly straightFly;
+
+class Converter
+{
+public:
+    int converterType = 0;
+    char replay_name[128];
+
+    void convert();
+    void import();
+
+private:
+    ReplayData2 pasreline(string line);
+};
+
+extern Converter converter;
+
+class Sequence
+{
+public:
+    char replay_sq_name[128];
+    vector<string> replays;
+    int current_idx;
+    bool enable_sqp;
+    bool random_sqp;
+    bool first_sqp;
+    void do_some_magic();
+};
+
+extern Sequence sequence;

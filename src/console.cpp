@@ -3,6 +3,8 @@
 
 namespace Console
 {
+	bool console_inited = false;
+
 	void Console::Write(string text)
 	{
 		freopen("CONOUT$", "w", stdout);
@@ -42,6 +44,16 @@ namespace Console
 
 	void Console::Init()
 	{
-		AllocConsole();
+		if (!console_inited) {
+			console_inited = true;
+			AllocConsole();
+			HWND hwndConsole = GetConsoleWindow();
+            if (hwndConsole != NULL)
+            {
+				EnableMenuItem(GetSystemMenu(hwndConsole, FALSE), SC_CLOSE, MF_BYCOMMAND | MF_DISABLED | MF_GRAYED);
+            }
+			
+		}
+		
 	}
 }
