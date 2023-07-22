@@ -200,13 +200,8 @@ string Replay::save(string name)
     return "Replay saved";
 }
 
-string Replay::load(string name, bool overwrite)
+string Replay::load(string name)
 {
-    if (overwrite)
-    {
-        clear();
-    }
-
     if (!replay2.empty())
         return "Please clear replay before loading another";
 
@@ -510,8 +505,11 @@ void Sequence::do_some_magic()
 {
     if (sequence.enable_sqp && replay.mode == state::play && !sequence.replays.empty())
     {
+        replay.replay.clear();
+        replay.replay2.clear();
+
         if (!sequence.random_sqp)
-        {
+        {          
             if (sequence.first_sqp)
             {
                 sequence.current_idx = 0;
@@ -526,8 +524,7 @@ void Sequence::do_some_magic()
         else
         {
             sequence.current_idx = getRandomNumber(0, (int)sequence.replays.size() - 1);
-            Console::WriteLine(to_string(sequence.current_idx) + " - " + sequence.replays[sequence.current_idx]);
-            replay.load(sequence.replays[sequence.current_idx].c_str(), true);
+            replay.load(sequence.replays[sequence.current_idx].c_str());
         }
     }
 }

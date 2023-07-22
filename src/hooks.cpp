@@ -17,6 +17,7 @@ namespace hooks
         practiceFix.clear();
         practiceFix.activated_objects_p1.clear();
         practiceFix.activated_objects_p2.clear();
+        sequence.first_sqp = true;
         return ret;
     }
 

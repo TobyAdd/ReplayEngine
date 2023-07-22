@@ -776,6 +776,10 @@ void gui::Render()
             ImGui::Checkbox("Toggle", &sequence.enable_sqp);
             ImGui::SameLine();
             ImGui::Checkbox("Random", &sequence.random_sqp);
+            ImGui::SameLine();
+            int mode = (int)replay.mode;
+            if (ImGui::RadioButton("Play", &mode, 2))
+                replay.mode = (state)mode;
             ImGui::InputText("##sqp_replay", sequence.replay_sq_name, IM_ARRAYSIZE(sequence.replay_sq_name));
             ImGui::SameLine();
             if (ImGui::Button("Add"))

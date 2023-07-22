@@ -69,7 +69,7 @@ public:
     bool empty();
     void reset_replay();
     string save(string name);
-    string load(string name, bool overwrite = false);
+    string load(string name);
     size_t replay_size() { return replay.size() + replay2.size(); }
     string replay_size_text()
     {
