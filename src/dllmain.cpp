@@ -7,6 +7,7 @@
 #include "hacks.h"
 #include <functional>
 #include <winternl.h>
+#include "speedhackAudio.h"
 
 bool show = true;
 bool noclipEnabled = false;
@@ -66,6 +67,7 @@ DWORD WINAPI ThreadMain(LPVOID lpParam)
 
             hooks::initHooks();
             framerate::initHooks();
+            SpeedhackAudio::init();
         }
         MH_EnableHook(MH_ALL_HOOKS);
     }

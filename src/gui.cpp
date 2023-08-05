@@ -10,11 +10,19 @@
 #include "hacks.h"
 #include "recorder.hpp"
 #include "framerate.h"
+#include "speedhackAudio.h"
 
 static int currentTab = 0;
 bool gui::show = false;
 bool gui::inited = false;
 bool meta = true;
+
+void Bottom(int lines = 1) {
+    float windowHeight = ImGui::GetWindowSize().y;
+    float textHeight = ImGui::GetTextLineHeight();
+    float textPosY = windowHeight - textHeight * lines;
+    ImGui::SetCursorPosY(textPosY);
+}
 
 void MetaRender()
 {
@@ -109,6 +117,41 @@ char *converterTypes[] = {"Plain Text (.txt)"};
 void gui::Render()
 {
     MetaRender();
+
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 1);
+    if (ImGui::GetTime() < 5) {
+        ImGui::SetNextWindowPos({10, 10});
+        ImGui::Begin("Replay Engine Message", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBringToFrontOnFocus);
+        ImGui::Text("Replay Engine loaded, press K to toggle UI");
+        ImGui::End();
+    }
+
+    if (ImGui::GetTime() > 5 && ImGui::GetTime() < 10) {
+        bool ffmpeg_installed = filesystem::exists("ffmpeg.exe");
+        bool clicks_installed = filesystem::exists("clicks.exe");
+        bool hacks_installed = filesystem::exists("ReplayEngine/hacks.json");
+
+        if (!ffmpeg_installed || !clicks_installed || !hacks_installed) {
+            ImGui::SetNextWindowPos({10, 10});
+            ImGui::Begin("Replay Engine Message", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBringToFrontOnFocus);
+            ImGui::Text("Warning: Some packages are not installed:");
+            
+            if (!ffmpeg_installed) {
+                ImGui::Text("ffmpeg.exe not found, \"Recorder\" and \"Clicks\" tabs unavailable");
+            }
+
+            if (!clicks_installed) {
+                ImGui::Text("clicks.exe not found, \"Clicks\" tab unavailable");
+            }
+
+            if (!hacks_installed) {
+                ImGui::Text("ReplayEngine/hacks.json not found, \"Hacks\" tab unavailable");
+            }
+
+            ImGui::End();
+        }
+    }
+    ImGui::PopStyleVar();
 
     if (gui::show)
     {
@@ -234,7 +277,9 @@ void gui::Render()
             ImGui::SameLine();
 
             ImGui::PushItemWidth(137.f);
-            ImGui::DragFloat("##Speed", &replay.speed_value, 0.01f, 0.f, FLT_MAX, "Speed: %.2f");
+            if (ImGui::DragFloat("##Speed", &replay.speed_value, 0.01f, 0.f, FLT_MAX, "Speed: %.2f")) {
+                SpeedhackAudio::set(replay.speed_value);
+            }
             ImGui::Separator();
 
             ImGui::Checkbox("Practice Fix", &replay.practice_fix);
@@ -584,6 +629,8 @@ void gui::Render()
                 {
                     if (filesystem::exists("ffmpeg.exe"))
                     {
+                        hacks::disable_achievements = true;
+                        hacks::disable_achievements_f(true);
                         Console::Init();
                         if (isRecording)
                         {
@@ -765,10 +812,7 @@ void gui::Render()
                 }
             }
 
-            float windowHeight = ImGui::GetWindowSize().y;
-            float textHeight = ImGui::GetTextLineHeight();
-            float textPosY = windowHeight - textHeight * 3;
-            ImGui::SetCursorPosY(textPosY);
+            Bottom(3);
             ImGui::Text("I'm too lazy to make conversions for every bot because my code\nwould become shitcoded\nInstead you can use Mat's converter to convert plain text to another replay");
         }
         else if (items_index == 6)
@@ -834,6 +878,7 @@ void gui::Render()
             static bool hard_clicks_e = false;
             static int soft_clicks = 200;
             static int hard_clicks = 500;
+            static int end_delay = 3;
 
             auto updateClicksAndVideos = [&]()
             {
@@ -896,9 +941,9 @@ void gui::Render()
                         ImGui::SameLine();
                         if (ImGui::Button("Render"))
                         {
-                            if (!filesystem::exists("clicks.exe"))
+                            if (!filesystem::exists("clicks.exe") && !filesystem::exists("ffmpeg.exe"))
                             {
-                                gd::FLAlertLayer::create(nullptr, "Info", "Ok", nullptr, "clicks.exe doesn't exist")->show();
+                                gd::FLAlertLayer::create(nullptr, "Info", "Ok", nullptr, "clicks.exe or ffmpeg.exe doesn't exist")->show();
                             }
                             else
                             {
@@ -910,20 +955,20 @@ void gui::Render()
                                         std::thread([&]()
                                                     {
                                             std::stringstream stream;
-                                            stream << "\"clicks\" -r\"ReplayEngine\\Replays\\converted.re\" -c\"" <<
+                                            stream << "\"clicks\" -r=\"ReplayEngine\\Replays\\converted.re\" -c=\"" <<
                                                 clicks[idx_clicks] << "\" ";
 
                                             if (soft_clicks_e) {
-                                                stream << "-softc" << soft_clicks << " ";
+                                                stream << "-softc=" << soft_clicks << " ";
                                             }
 
                                             if (hard_clicks_e) {
-                                                stream << "-hardc" << hard_clicks << " ";
+                                                stream << "-hardc=" << hard_clicks << " ";
                                             }
 
-                                            stream << "-end3 ";
+                                            stream << "-end=" << end_delay << " ";
 
-                                            stream << "-o\"ReplayEngine\\Clicks\\" << static_cast<string>(output_clicks) << ".mp3\"";
+                                            stream << "-o=\"ReplayEngine\\Clicks\\" << static_cast<string>(output_clicks) << ".mp3\"";
 
                                             auto process = subprocess::Popen(stream.str());
                                             if (process.close() != 0) {
@@ -953,10 +998,10 @@ void gui::Render()
                         ImGui::PushItemWidth(120.f);
                         ImGui::DragInt("##hardclicks", &hard_clicks, 1, 0, INT_MAX, "ms: %i");
 
-                        float windowHeight = ImGui::GetWindowSize().y;
-                        float textHeight = ImGui::GetTextLineHeight();
-                        float textPosY = windowHeight - textHeight;
-                        ImGui::SetCursorPosY(textPosY);
+                        ImGui::PushItemWidth(200.f);
+                        ImGui::DragInt("##end_delay", &end_delay, 1, 0, INT_MAX, "Second to Render After: %i");
+
+                        Bottom();
                         ImGui::Text("All outputs will be saved to \"ReplayEngine/Clicks\" folder");
                         ImGui::EndTabItem();
                     }
@@ -1011,10 +1056,7 @@ void gui::Render()
                         ImGui::DragFloat("##audio_volume", &audio_volume, 0.01f, 0, FLT_MAX, "Audio Volume %.2f");
                         ImGui::DragFloat("##clicks_volume", &clicks_volume, 0.01f, 0, FLT_MAX, "Clicks Volume %.2f");
 
-                        float windowHeight = ImGui::GetWindowSize().y;
-                        float textHeight = ImGui::GetTextLineHeight();
-                        float textPosY = windowHeight - textHeight;
-                        ImGui::SetCursorPosY(textPosY);
+                        Bottom();
                         ImGui::Text("Video will be saved to \"ReplayEngine/Videos/clicks_%s\"", videos[idx_videos].c_str());
                         ImGui::EndTabItem();
                     }
@@ -1027,7 +1069,7 @@ void gui::Render()
         {
             ImGui::Text("About");
             ImGui::Separator();
-            ImGui::Text("Replay Engine Beta 3 by TobyAdd");
+            ImGui::Text("Replay Engine Beta 4 by TobyAdd");
             if (ImGui::MenuItem("Graphical interface is made using ImGui"))
                 ShellExecuteA(NULL, "open", "https://github.com/ocornut/imgui", NULL, NULL, SW_SHOWNORMAL);
 
