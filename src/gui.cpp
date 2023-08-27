@@ -823,7 +823,7 @@ void gui::Render()
 
             if (ImGui::Button("Matcool Converter"))
             {
-                ShellExecuteA(0, "open", "https://matcool.github.io/gd-macro-converter/", 0, 0, SW_SHOWNORMAL);
+                ShellExecuteA(0, "open", "https://matcool.github.io/gd-macro-converter/frame.html", 0, 0, SW_SHOWNORMAL);
             }
 
             if (converter.converterType == 0)
