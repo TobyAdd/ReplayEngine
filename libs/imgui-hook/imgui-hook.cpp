@@ -1,8 +1,8 @@
 #include "imgui-hook.hpp"
 #include "imgui_theme.hpp"
-#include "font.hpp"
 #include <functional>
 #include <chrono>
+#include "font.hpp"
 
 WNDPROC originalWndProc;
 bool isInitialized = false;
@@ -53,10 +53,10 @@ void __fastcall CCEGLView_swapBuffers_H(CCEGLView* self)
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
-        io.Fonts->AddFontFromMemoryTTF(fontData, sizeof(fontData), 14.f);
         io.IniFilename = nullptr;
         ApplyStyle();
         ApplyColor();
+        io.Fonts->AddFontFromMemoryTTF(fontData, sizeof(fontData), 14.f);
         hWnd = WindowFromDC(*reinterpret_cast<HDC*>(reinterpret_cast<uintptr_t>(self->getWindow()) + 0x244));
         originalWndProc = (WNDPROC)GetWindowLongPtr(hWnd, GWLP_WNDPROC);
         SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)HookedWndProc);

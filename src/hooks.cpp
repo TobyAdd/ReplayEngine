@@ -4,9 +4,12 @@
 #include <imgui.h>
 #include "hacks.h"
 #include "recorder.hpp"
+#include "framerate.h"
+#include "gui.h"
 
 namespace hooks
 {
+    bool release = true;
     bool __fastcall playLayer_initHook(gd::PlayLayer *self, int edx, gd::GJGameLevel *level)
     {
         auto ret = playLayer_init(self, level);
@@ -25,7 +28,7 @@ namespace hooks
         if (recorder.m_recording)
             recorder.handle_recording(self, deltaTime);
 
-        playLayer_update(self, deltaTime);
+        playLayer_update(self, framerate::enabled ? 1.f / replay.fps_value : deltaTime);
 
         if (replay.mode == play)
         {
@@ -110,6 +113,7 @@ namespace hooks
             return false;
 
         bool ret = playLayer_pushButton(self, state, player);
+        release = false;
 
         if (replay.mode == record && !self->m_isDead)
             replay.handle_recording2(player, true);
@@ -132,6 +136,7 @@ namespace hooks
             return false;
 
         bool ret = playLayer_releaseButton(self, state, player);
+        release = true;
 
         unsigned frame = replay.get_frame();
         if (replay.mode == record && !self->m_isDead)
@@ -202,7 +207,7 @@ namespace hooks
         {
             hooks::playLayer_resetLevelHook(pl);
         }
-        else if (pl && down && key == 'P')
+        else if (down && key == 'P')
         {
             if (replay.mode == play)
             {
@@ -212,6 +217,18 @@ namespace hooks
             {
                 replay.mode = play;
             }
+        }
+        else if (pl && down && key == 'S')
+        {
+            spamBot.enabled = !spamBot.enabled;
+            gui::current_time_for_keybind = (float)ImGui::GetTime() + 3.f;
+            gui::is_spambot = true;
+        }
+        else if (pl && down && key == 'D')
+        {
+            straightFly.enabled = !straightFly.enabled;
+            gui::current_time_for_keybind = (float)ImGui::GetTime() + 3.f;
+            gui::is_spambot = false;
         }
     }
 

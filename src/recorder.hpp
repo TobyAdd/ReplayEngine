@@ -31,7 +31,7 @@ public:
     bool m_recording = false;
     double m_last_frame_t, m_extra_t;
     bool m_until_end = true;
-    std::string m_codec = "libx264", m_bitrate = "30M", m_extra_args = "", m_extra_audio_args = "";
+    std::string m_codec = "libx264", m_bitrate = "30M", m_extra_args = "-preset ultrafast", m_extra_audio_args = "";
     float m_after_end_duration = 3.f;
     float m_after_end_extra_time;
     float m_song_start_offset;

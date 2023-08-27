@@ -15,6 +15,7 @@ target_include_directories(${PROJECT} PRIVATE
   libs/gd.h/
   libs/imgui-hook
   libs/imgui-hook/imgui
+  libs/stb-image
   libs
 )
 

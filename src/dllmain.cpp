@@ -39,7 +39,6 @@ bool IsWindows81orHigher() {
 inline void (__thiscall* LoadingLayer_init)(cocos2d::CCLayer*, char);
 void __fastcall LoadingLayer_initHook(cocos2d::CCLayer* layer, void*, char boolean) {
     CCLabelBMFont* label = cocos2d::CCLabelBMFont::create("Replay Engine requires Windows 8.1 or higher. Sorry :(\nUnload Replay Engine to use Geometry Dash", "chatfont.fnt");
-
     auto winSize = cocos2d::CCDirector::sharedDirector()->getWinSize();
     label->setPosition(winSize.width / 2, winSize.height / 2);
     label->setAlignment(kCCTextAlignmentCenter);

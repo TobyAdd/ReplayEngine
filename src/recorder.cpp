@@ -57,8 +57,11 @@ void Recorder::start(const string& path) {
                 m_lock.unlock();
         }
         if (process.close()) {
+            Console::WriteLine("FFmpeg returned 0x1. Probably failed");
             return;
         }
+        Console::WriteLine("Video should be done");
+
         if (!m_include_audio || !filesystem::exists(song_file))
             return;
 
@@ -78,8 +81,10 @@ void Recorder::start(const string& path) {
             stream << "\" \"" << tempPath << "\"";
             auto process = subprocess::Popen(stream.str());
             if (process.close()) {
+                Console::WriteLine("FFmpeg returned 0x1. Probably failed");
                 return;
             }
+            Console::WriteLine("Video + Audio should be done");
         }
         filesystem::remove(finalPath);
         filesystem::rename(tempPath, finalPath);

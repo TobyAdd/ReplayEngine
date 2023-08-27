@@ -2,6 +2,7 @@
 
 namespace hooks
 {
+    extern bool release;
     inline bool(__thiscall *playLayer_init)(gd::PlayLayer *self, gd::GJGameLevel *GJGameLevel);
     bool __fastcall playLayer_initHook(gd::PlayLayer *self, int edx, gd::GJGameLevel *GJGameLevel);
 

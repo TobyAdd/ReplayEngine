@@ -20,6 +20,12 @@ namespace framerate
         const auto play_layer = gd::GameManager::sharedState()->getPlayLayer();
         const auto editor_layer = gd::GameManager::sharedState()->getEditorLayer();
 
+        dt *= replay.speed_value;
+        const float target_dt = 1.f / replay.fps_value;
+
+        if (enabled_fps)
+            CCDirector::sharedDirector()->setAnimationInterval(target_dt);
+
         if (!enabled) {
             CCScheduler_update(self, dt);
             return;
@@ -31,12 +37,6 @@ namespace framerate
         }
 
         bool isPaused = play_layer ? play_layer->m_isPaused : true;
-
-        dt *= replay.speed_value;
-        const float target_dt = 1.f / replay.fps_value;
-
-        if (enabled_fps)
-            CCDirector::sharedDirector()->setAnimationInterval(target_dt);
 
         if (!replay.real_time) {
             CCScheduler_update(self, target_dt);

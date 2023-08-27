@@ -1,4 +1,5 @@
 #define IMGUI_DEFINE_MATH_OPERATORS
+#define STB_IMAGE_IMPLEMENTATION
 #include "gui.h"
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -11,6 +12,7 @@
 #include "recorder.hpp"
 #include "framerate.h"
 #include "speedhackAudio.h"
+#include <stb_image.h>
 
 static int currentTab = 0;
 bool gui::show = false;
@@ -38,16 +40,16 @@ void MetaRender()
             auto dual = pl->m_isDualMode;
             if (!dual)
             {
-                ImGui::Text("Replay Engine Beta\nFrame: %i\nPosition X: %f\nPosition Y: %f\nRotation %f\nY Accel: %f",
+                ImGui::Text("Replay Engine Beta\nFrame: %i\nPosition X: %f\nPosition Y: %f\nRotation %f\nY Accel: %f\n%s",
                             replay.get_frame(), pl->m_player1->m_position.x, pl->m_player1->m_position.y, pl->m_player1->getRotation(),
-                            pl->m_player1->m_yAccel);
+                            pl->m_player1->m_yAccel, hooks::release ? "Release" : "Push");
             }
             else
             {
-                ImGui::Text("Replay Engine Beta\nFrame: %i\nPosition X: %f, %f\nPosition Y: %f, %f\nRotation %f, %f\nY Accel: %f, %f",
+                ImGui::Text("Replay Engine Beta\nFrame: %i\nPosition X: %f, %f\nPosition Y: %f, %f\nRotation %f, %f\nY Accel: %f, %f\n%s",
                             replay.get_frame(), pl->m_player1->m_position.x, pl->m_player2->m_position.x,
                             pl->m_player1->m_position.y, pl->m_player2->m_position.y, pl->m_player1->getRotation(), pl->m_player2->getRotation(),
-                            pl->m_player1->m_yAccel, pl->m_player2->m_yAccel);
+                            pl->m_player1->m_yAccel, pl->m_player2->m_yAccel, hooks::release ? "Release" : "Push");
             }
             ImGui::PopStyleColor();
         }
@@ -104,7 +106,7 @@ void SelectReplay()
     }
 }
 
-char *items[] = {"General", "Assist", "Hacks", "Editor", "Recorder", "Converter", "Sequence", "Clickbot (Beta)", "About"};
+char *items[] = {"General", "Assist", "Hacks", "Editor", "Recorder", "Converter", "Sequence", "Clickbot", "About"};
 int items_index = 0;
 
 int editor_indexInputs = 0;
@@ -114,10 +116,11 @@ int itemsEditor_index = 0;
 
 char *converterTypes[] = {"Plain Text (.txt)"};
 
+bool gui::is_spambot = false;
+float gui::current_time_for_keybind = 0.0;
+
 void gui::Render()
 {
-    MetaRender();
-
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 1);
     if (ImGui::GetTime() < 5) {
         ImGui::SetNextWindowPos({10, 10});
@@ -151,7 +154,21 @@ void gui::Render()
             ImGui::End();
         }
     }
+
+    if (ImGui::GetTime() < current_time_for_keybind) {
+        ImGui::SetNextWindowPos({10, 10});
+        ImGui::Begin("Replay Engine Message", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBringToFrontOnFocus);
+        if (is_spambot) {
+            ImGui::Text(spamBot.enabled ? "Spambot enabled" : "Spambot disabled");
+        }
+        else {
+            ImGui::Text(straightFly.enabled ? "Straight Fly Bot enabled" : "Straight Fly Bot disabled");
+        }        
+        ImGui::End();
+    }
     ImGui::PopStyleVar();
+
+    MetaRender();
 
     if (gui::show)
     {
@@ -167,8 +184,8 @@ void gui::Render()
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
         ImGui::Begin("Replay Engine", nullptr, ImGuiWindowFlags_NoTitleBar);
         ImGui::PopStyleVar();
-
-        ImGui::PushStyleColor(ImGuiCol_Border, 1);
+        
+        ImGui::PushStyleColor(ImGuiCol_Border, ImColor(0, 0, 0, 0).Value);
         ImGui::BeginChild("##menu", ImGui::GetContentRegionAvail(), true);
         ImGui::PopStyleColor();
 
@@ -276,10 +293,22 @@ void gui::Render()
 
             ImGui::SameLine();
 
+            static bool speedhack_audio = false;
             ImGui::PushItemWidth(137.f);
             if (ImGui::DragFloat("##Speed", &replay.speed_value, 0.01f, 0.f, FLT_MAX, "Speed: %.2f")) {
-                SpeedhackAudio::set(replay.speed_value);
+                if (speedhack_audio) {
+                    SpeedhackAudio::set(replay.speed_value);
+                }                
             }
+            ImGui::SameLine();
+            if (ImGui::Checkbox("Audio", &speedhack_audio)) {
+                if (speedhack_audio) {
+                    SpeedhackAudio::set(replay.speed_value);
+                }
+                else {
+                    SpeedhackAudio::set(1);
+                }
+            } 
             ImGui::Separator();
 
             ImGui::Checkbox("Practice Fix", &replay.practice_fix);
@@ -958,18 +987,18 @@ void gui::Render()
                                             stream << "\"clicks\" -r=\"ReplayEngine\\Replays\\converted.re\" -c=\"" <<
                                                 clicks[idx_clicks] << "\" ";
 
+                                            stream << "-o=\"ReplayEngine\\Clicks\\" << static_cast<string>(output_clicks) << ".mp3\" ";
+
                                             if (soft_clicks_e) {
                                                 stream << "-softc=" << soft_clicks << " ";
                                             }
 
                                             if (hard_clicks_e) {
-                                                stream << "-hardc=" << hard_clicks << " ";
+                                                stream << "-hardc" << hard_clicks << " ";
                                             }
 
                                             stream << "-end=" << end_delay << " ";
-
-                                            stream << "-o=\"ReplayEngine\\Clicks\\" << static_cast<string>(output_clicks) << ".mp3\"";
-
+                                            Console::WriteLine("Executing: " + stream.str());
                                             auto process = subprocess::Popen(stream.str());
                                             if (process.close() != 0) {
                                                 Console::WriteLine("Clicks render went wrong :(");
@@ -1057,7 +1086,7 @@ void gui::Render()
                         ImGui::DragFloat("##clicks_volume", &clicks_volume, 0.01f, 0, FLT_MAX, "Clicks Volume %.2f");
 
                         Bottom();
-                        ImGui::Text("Video will be saved to \"ReplayEngine/Videos/clicks_%s\"", videos[idx_videos].c_str());
+                        ImGui::Text(!videos.empty() ? "Video will be saved to \"ReplayEngine/Videos/clicks_%s\"", videos[idx_videos].c_str() : "No videos!");
                         ImGui::EndTabItem();
                     }
 
@@ -1069,7 +1098,7 @@ void gui::Render()
         {
             ImGui::Text("About");
             ImGui::Separator();
-            ImGui::Text("Replay Engine Beta 4 by TobyAdd");
+            ImGui::Text("Replay Engine Release 1 by TobyAdd");
             if (ImGui::MenuItem("Graphical interface is made using ImGui"))
                 ShellExecuteA(NULL, "open", "https://github.com/ocornut/imgui", NULL, NULL, SW_SHOWNORMAL);
 
@@ -1090,6 +1119,8 @@ void gui::Render()
             ImGui::Text("C - Enable Frame Advance + Next Frame");
             ImGui::Text("V - Disable Frame Advance");
             ImGui::Text("P - Toggle Playback/Disable");
+            ImGui::Text("S - Toggle Spambot");
+            ImGui::Text("D - Toggle Straight Fly Bot");
             ImGui::Spacing();
             ImGui::Text("Special Thanks");
             ImGui::Separator();
