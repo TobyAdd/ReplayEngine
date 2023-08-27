@@ -40,13 +40,13 @@ void MetaRender()
             auto dual = pl->m_isDualMode;
             if (!dual)
             {
-                ImGui::Text("Replay Engine Beta\nFrame: %i\nPosition X: %f\nPosition Y: %f\nRotation %f\nY Accel: %f\n%s",
+                ImGui::Text("Frame: %i\nPosition X: %f\nPosition Y: %f\nRotation %f\nY Accel: %f\n%s",
                             replay.get_frame(), pl->m_player1->m_position.x, pl->m_player1->m_position.y, pl->m_player1->getRotation(),
                             pl->m_player1->m_yAccel, hooks::release ? "Release" : "Push");
             }
             else
             {
-                ImGui::Text("Replay Engine Beta\nFrame: %i\nPosition X: %f, %f\nPosition Y: %f, %f\nRotation %f, %f\nY Accel: %f, %f\n%s",
+                ImGui::Text("Frame: %i\nPosition X: %f, %f\nPosition Y: %f, %f\nRotation %f, %f\nY Accel: %f, %f\n%s",
                             replay.get_frame(), pl->m_player1->m_position.x, pl->m_player2->m_position.x,
                             pl->m_player1->m_position.y, pl->m_player2->m_position.y, pl->m_player1->getRotation(), pl->m_player2->getRotation(),
                             pl->m_player1->m_yAccel, pl->m_player2->m_yAccel, hooks::release ? "Release" : "Push");
