@@ -59,6 +59,9 @@ public:
     bool disable_rotationfix = true;
     bool continue_toggled = false;
 
+    bool load_another_replay = false;
+    bool auto_play = false;
+
     unsigned get_frame();
     void handle_recording(gd::PlayLayer *self, bool player);
     void handle_recording2(bool player, bool hold);
@@ -69,7 +72,7 @@ public:
     bool empty();
     void reset_replay();
     string save(string name);
-    string load(string name);
+    string load(string name, bool overwrite);
     size_t replay_size() { return replay.size() + replay2.size(); }
     string replay_size_text()
     {

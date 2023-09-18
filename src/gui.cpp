@@ -237,8 +237,9 @@ void gui::Render()
                 { // Disabling Auto-Checkpoints option
                     gd::GameManager::sharedState()->setGameVariable("0027", false);
                 }
+                if (replay.mode != state::record) 
+                    replay.clear();
                 replay.mode = (state)mode;
-                replay.clear();
             }
             ImGui::SameLine();
 
@@ -275,7 +276,7 @@ void gui::Render()
                     gd::FLAlertLayer::create(nullptr, "Info", "Ok", nullptr, "Replay name is empty")->show();
                 else
                 {
-                    gd::FLAlertLayer::create(nullptr, "Info", "Ok", nullptr, replay.load((string)replay.replay_name))->show();
+                    gd::FLAlertLayer::create(nullptr, "Info", "Ok", nullptr, replay.load((string)replay.replay_name, false))->show();
                 }
             }
 
@@ -326,7 +327,7 @@ void gui::Render()
 
             ImGui::Checkbox("FPS Bypass", &framerate::enabled);
             ImGui::SameLine();
-            ImGui::Checkbox("FPS Multiplier", &framerate::enabled_fps);
+            ImGui::Checkbox("FPS Multiplier (Lock Delta)", &framerate::enabled_fps);
             ImGui::SameLine();
             ImGui::Checkbox("Orb Fix", &practiceFix.orb_fix);
 
@@ -426,6 +427,12 @@ void gui::Render()
             if (ImGui::Checkbox("Disable achievements", &hacks::disable_achievements))
             {
                 hacks::disable_achievements_f(hacks::disable_achievements);
+            }
+            ImGui::Separator();
+            ImGui::Checkbox("Load replay by level name on entering", &replay.load_another_replay);
+            ImGui::SameLine();
+            if (replay.load_another_replay) {
+                ImGui::Checkbox("Auto play", &replay.auto_play);
             }
             // ImGui::Separator();
             // if (ImGui::Button("Crash GD")) {
@@ -1098,7 +1105,7 @@ void gui::Render()
         {
             ImGui::Text("About");
             ImGui::Separator();
-            ImGui::Text("Replay Engine Release 1 by TobyAdd");
+            ImGui::Text("Replay Engine Release 2 by TobyAdd");
             if (ImGui::MenuItem("Graphical interface is made using ImGui"))
                 ShellExecuteA(NULL, "open", "https://github.com/ocornut/imgui", NULL, NULL, SW_SHOWNORMAL);
 

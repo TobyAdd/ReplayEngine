@@ -15,6 +15,13 @@ namespace hooks
         auto ret = playLayer_init(self, level);
         recorder.update_song_offset(self);
         strcpy_s(replay.replay_name, self->m_level->levelName.c_str());
+        if (replay.load_another_replay) {
+            if (replay.load((string)replay.replay_name, true) == "Replay loaded") {
+                if (replay.auto_play) {
+                    replay.mode = state::play;
+                }
+            }
+        }
         strcpy_s(recorder.video_name, string(self->m_level->levelName + ".mp4").c_str());
         practiceFix.frame_offset = 0;
         practiceFix.clear();
@@ -28,7 +35,7 @@ namespace hooks
         if (recorder.m_recording)
             recorder.handle_recording(self, deltaTime);
 
-        playLayer_update(self, framerate::enabled ? 1.f / replay.fps_value : deltaTime);
+        playLayer_update(self, deltaTime);
 
         if (replay.mode == play)
         {

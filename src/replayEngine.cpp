@@ -200,10 +200,14 @@ string Replay::save(string name)
     return "Replay saved";
 }
 
-string Replay::load(string name)
+string Replay::load(string name, bool overwrite = false)
 {
+    if (overwrite)
+        clear();
+
     if (!replay2.empty())
         return "Please clear replay before loading another";
+
 
     ifstream file("ReplayEngine/Replays/" + name + ".re", std::ios::binary);
     if (!file)
@@ -278,6 +282,9 @@ bool PracticeFix::fix_respawn(gd::PlayLayer *self)
 {
     if (checkpoints_p1.empty())
         return false;
+
+    if (!replay.practice_fix)
+        return true;
 
     self->m_player1->m_position.x = checkpoints_p1.back().pos_x;
     self->m_player1->m_position.y = checkpoints_p1.back().pos_y;
