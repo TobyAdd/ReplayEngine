@@ -1,59 +1,67 @@
-<div align="center">
+## Important Note
+ReplayEngine is currently in beta development, and half of the features may not be available compared to DashReplay   
+To make Internal Recorder work, you need to download and place [ffmpeg.exe](https://github.com/AnimMouse/ffmpeg-autobuild) file into Geometry Dash folder  
+To make clickbot work, you need to download and place [clicks.exe](https://github.com/TobyAdd/clicks/releases/latest/download/clicks.exe) file into Geometry Dash folder
 
-  # GDH: Now for 2.2!
-  ### GDH - Free, integrated and first Geometry Dash mod menu for 2.2!
-  <a href="https://github.com/TobyAdd/GDH" target="_blank" rel="noreferrer"> <img src="https://github.com/TobyAdd/GDH/assets/66429886/c72b42ef-4599-4f02-8035-d1f4a9f9bfe3" alt="GDH Menu Screen" title="GDH Menu"/> </a>
-</div>
+## About
+ReplayEngine is a redesigned and improved project that offers more accurate macro recording and a more flexible interface than DashReplay.
 
----
+## Installation
+Firstly, you need to download DLL [here](https://github.com/TobyAdd/ReplayEngine/releases).
 
-<h2 align="center">How to use?</h2>
+Then, you need to inject a DLL into Geometry Dash.
 
-1. Open [latest release](https://github.com/TobyAdd/GDH/releases/latest) link
-2. Download "**Release.zip**" archive
-3. Extract all files from archive to **Geometry Dash** folder (that contains the **GeometryDash.exe**)
-4. Run Geometry Dash and press: **Tab** for show integrated menu
+There are quite a few methods for this:
 
----
+- MegaHack v6+: place DLL to `extensions` in Geometry Dash folder.
+- GDHM: place DLL to `GDHM/dll` in Geometry Dash folder.
 
-<h2 align="center">Development</h2>
+- no mod menu:
 
-<p> Some dependencies are needed: <a href="https://git-scm.com/">Git</a> ; <a href="https://code.visualstudio.com/">Visual Studio Code</a> ; <a href="https://cmake.org/">CMake</a> </p>
+  - ProxyDLLLoader:
+    - download [XInput9\_1\_0.dll](https://github.com/adafcaefc/ProxyDllLoader/releases/download/v1.0/xinput9_1_0.dll), and put it in GD folder;
+    - create `adaf-dll` folder in GD folder, and put RE DLL into it;
+    - done.
 
-Now you can directly clone this repo or you can fork it.
+  - quickloader:
+    - download [quickldr](https://cdn.discordapp.com/attachments/837026406282035300/859008315413626920/quickldr-v1.1.zip), and extract zip to GD folder, replacing `libcurl.dll`;
+    - create `quickldr` folder in GD folder;
+    - create `settings.txt` file in new `quickldr` folder, and add to it RE DLL name (e.g. `ReplayEngine.dll`);
+    - move RE DLL to `quickldr` folder;
+    - done.
 
-Run this in your terminal on the folder where you want all the code:
+## Gallery
+![screenshot](https://github.com/TobyAdd/ReplayEngine/assets/66429886/041a44ea-6fd9-4b20-90d4-2dd42d85000c)
 
-1. **Clone**: `git clone https://github.com/TobyAdd/GDH --recursive` & `cd GDH`
+## Keybinds
+`[K]` - Toggle UI  
+`[C]` - Enable Frame Advance + Next Frame  
+`[V]` - Disable Frame Advance  
+`[P]` - Toggle Playback
 
-3. **Configure** `cmake -B build -A win32`
+## Features
+- Fresh Design
+- Accurate replay recording
+- Continue Mode
+- Intergrated FPS Bypass and Speedhack
+- Real Time Playing
+- Practice Fix, Accuracy Fix
+- Ignore Inputs on Playback
+- Frame Advance
+- Spam Bot
+- Straight Fly Bot
+- Dual Clicks
+- Noclip 2P
+- Hacks pack
+- Editor
+- Internal Recorder
+- Converter
+- Sequence
+- Clickbot (Non live)
 
-5. **Build:** `cmake --build build --config Release -j 4`
-
-- **You should find the result** in `build/Release`
-
----
-
-<p align="center"> Credits: <a href="https://github.com/ocornut/">Ocornut</a> for <a href="https://github.com/ocornut/imgui">ImGui</a> ; <a href="https://github.com/TsudaKageyu/">TsudaKageyu</a> for <a href="https://github.com/TsudaKageyu/minhook">MinHook</a> </p>
-<p align="center"> Special Thanks: <a href="https://github.com/howhathe">howhathe</a> for the ReadMe ; <a href="https://github.com/zeozeozeo">zeozeozeo</a> for some coding stuff ; <a href="https://github.com/wint0r">wint0r</a> for StartPos switcher ; You. Thank for using! </p>
-
----
-
-<div align="center">
-  <a href="https://discord.gg/Q4nbm4mHYT" target="_blank" rel="noreferrer"> <img src="https://www.svgrepo.com/show/353655/discord-icon.svg" alt="Discord Image (Click to open Discord Server)" title="Click to open Discord Server!" width="50"/> </a>
-</div>
-
-<!--
-<div align="center">
-  <h2>Features</h2>
-  
-  | Player                            | Creator               | Bypass                   | Stuff                     |
-  | --------------------------------- | --------------------- | ------------------------ | ------------------------- |
-  | Noclip                            | Copy / Verify Hack    | Text / Character Bypass  | Speedhack                 |
-  | Practice Music Hack               | Level Edit            | Shopkeeper Bypass        | StartPos Switcher         |
-  | Unlock all Icons & Levels         | Slider Limit          | Potbor / Scratch Bypass  | Extensions Loader         |
-  | No Transition / Particles / More  | Testmode Bypass       | Mechanic Bypass          | UI & Hacks Customization  |
-  | Trail Always On / Off             | Custom Object Bypass  | Vault of Secrets Bypass  | GD-Bot? (Soon)            |
-  | And More!                         | And more soon!        | And more soon!           | And more soon!            |
-</div>
--->
+## Special Thanks
+[@FireMario211](https://github.com/FireMario211) - For the development of the GD Mod example.  
+[@HJfod](https://github.com/HJfod) - Help with some coding stuff  
+[@matcool](https://github.com/matcool) - Internal Recorder  
+[@absoIute](https://github.com/absoIute) - Hacks  
+[@thisisignitedoreo](https://github.com/thisisignitedoreo) - Clickbot & README help
