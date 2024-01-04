@@ -1,7 +1,5 @@
 #include "hooks.hpp"
 #include "hacks.hpp"
-#include "startposSwitcher.hpp"
-#include "smartStartpos.hpp"
 
 bool hooks::musicUnlocker = true;
 int hooks::transitionSelect = 0;
@@ -41,7 +39,6 @@ bool __fastcall hooks::PlayLayer_init_H(void *self, int edx, void *GJGameLevel, 
 {
     const auto res = PlayLayer_init(self, GJGameLevel, a3, a4);
     if (res) {
-        startposSwitcher::playLayer = self;
 
         // try to call zcblive callback
         HMODULE zcblive = GetModuleHandleA("zcblive.dll");
@@ -60,7 +57,6 @@ void __fastcall hooks::playLayer_update_H(void* self, int edx, float deltaTime)
 {
     playLayer_update(self, deltaTime);
 
-    startposSwitcher::playLayer = self;
     frame = engine.getFrame(self);
     
     if (engine.mode == state::play)
@@ -88,7 +84,6 @@ void __fastcall hooks::playLayer_update_H(void* self, int edx, float deltaTime)
 void __fastcall hooks::PlayLayer_resetLevel_H(void *self)
 {
     PlayLayer_resetLevel(self);
-    startposSwitcher::playLayer = self;
 
     if (engine.mode == state::play) {
         engine.index = 0;        
@@ -122,7 +117,6 @@ void __fastcall hooks::playLayer_levelComplate_H(int *self) {
 void __fastcall hooks::PlayLayer_destructor_H(void *self)
 {
     PlayLayer_destructor(self);
-    startposSwitcher::playLayer = nullptr;
     if (engine.mode == state::record)
         engine.mode = state::disable;    
 }

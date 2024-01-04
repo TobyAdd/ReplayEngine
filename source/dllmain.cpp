@@ -4,25 +4,21 @@
 #include "gui.hpp"
 #include "hooks.hpp"
 #include "hacks.hpp"
-#include "startposSwitcher.hpp"
-#include "smartStartpos.hpp"
-#include "keybinds.hpp"
 
 DWORD WINAPI ThreadMain(LPVOID lpParam)
 {
     // Console::Init();
     ImGuiHook::setRenderFunction(gui::Render);
+    gui::Toggle();
     ImGuiHook::setKeyPressHandler([](int keyCode) 
         {
             switch (keyCode)
             {
-            case VK_TAB:
+            case 16:
                 gui::Toggle();
                 break;
             }
 
-            startposSwitcher::handleKeyPress(keyCode);
-            keybinds::keypress(keyCode);
             if (gui::recording == true)
                 gui::currentkeycode = keyCode;
         });
@@ -32,8 +28,6 @@ DWORD WINAPI ThreadMain(LPVOID lpParam)
                             { MH_CreateHook(target, hook, trampoline); });
         hooks::init();
         hacks::load();
-        startposSwitcher::init();
-        smartStartpos::init();
         MH_EnableHook(MH_ALL_HOOKS);
         hacks::inject_extensions();
     }
@@ -48,7 +42,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
     }
     else if (ul_reason_for_call == DLL_PROCESS_DETACH) {
         if (!hacks::content.is_null()) {
-            ofstream outputFile("GDH/hacks.json");
+            ofstream outputFile("ReplayEngine/settings.json");
             outputFile << hacks::content.dump(4);
             outputFile.close();
         }
